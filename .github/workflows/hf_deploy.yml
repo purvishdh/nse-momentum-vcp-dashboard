@@ -20,5 +20,5 @@ jobs:
         run: |
           git config --global user.email "purvishdh@users.noreply.github.com"
           git config --global user.name "purvishdh"
-          git remote add hf https://purvishdh:$HF_TOKEN@huggingface.co/spaces/purvishdh/nse-momentum-vcp-dashboard
+          git remote add hf https://Purvish347:$HF_TOKEN@huggingface.co/spaces/Purvish347/Stock.finder
           git push hf main --force
