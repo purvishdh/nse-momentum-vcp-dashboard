@@ -10,39 +10,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          fetch-depth: 0
-          lfs: true
+          python-version: '3.11'
 
       - name: Install huggingface_hub
-        run: pip install huggingface_hub
+        run: pip install -q huggingface_hub
+
+      - name: Check token exists
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "ERROR: HF_TOKEN secret is empty or not set!"
+            exit 1
+          else
+            echo "HF_TOKEN is set (length=${#HF_TOKEN})"
+          fi
 
       - name: Upload files to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          python - <<'EOF'
-          import os
-          from huggingface_hub import HfApi
+          python3 << 'PYEOF'
+          import os, sys
+          from huggingface_hub import HfApi, login
 
-          api = HfApi(token=os.environ["HF_TOKEN"])
-          repo_id = "Purvish347/Stock.finder"
+          token = os.environ.get("HF_TOKEN", "")
+          if not token:
+              print("ERROR: HF_TOKEN is empty")
+              sys.exit(1)
 
-          files = [
-              "streamlit_app.py",
-              "requirements.txt",
-              "Dockerfile",
-              "README.md",
-          ]
+          try:
+              login(token=token)
+              api = HfApi()
+              repo_id = "Purvish347/Stock.finder"
 
-          for f in files:
-              if os.path.exists(f):
-                  api.upload_file(
-                      path_or_fileobj=f,
-                      path_in_repo=f,
-                      repo_id=repo_id,
-                      repo_type="space",
-                  )
-                  print(f"Uploaded {f}")
-          print("All files uploaded successfully!")
-          EOF
+              for fname in ["streamlit_app.py", "requirements.txt", "Dockerfile", "README.md"]:
+                  if os.path.exists(fname):
+                      api.upload_file(
+                          path_or_fileobj=fname,
+                          path_in_repo=fname,
+                          repo_id=repo_id,
+                          repo_type="space",
+                      )
+                      print(f"OK: uploaded {fname}")
+                  else:
+                      print(f"SKIP: {fname} not found")
+
+              print("Deploy complete!")
+          except Exception as e:
+              print(f"DEPLOY ERROR: {e}")
+              sys.exit(1)
+          PYEOF
