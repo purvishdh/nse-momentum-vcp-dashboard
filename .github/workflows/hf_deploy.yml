@@ -29,17 +29,17 @@ jobs:
 
           token = os.environ.get("HF_TOKEN", "")
           api = HfApi(token=token)
-          repo_id = "Purvish347/Stock.finder"
 
           try:
-              # Verify token works
               whoami = api.whoami()
               print(f"Logged in as: {whoami['name']}")
           except Exception as e:
               print(f"AUTH ERROR: {e}")
               sys.exit(1)
 
+          repo_id = "Purvish377/Stock.finder"
           files = ["streamlit_app.py", "requirements.txt", "Dockerfile", "README.md"]
+
           try:
               api.upload_folder(
                   folder_path=".",
