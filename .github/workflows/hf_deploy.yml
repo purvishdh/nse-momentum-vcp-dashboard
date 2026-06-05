@@ -17,18 +17,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install huggingface_hub
-        run: pip install -q huggingface_hub
-
-      - name: Check token exists
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "ERROR: HF_TOKEN secret is empty or not set!"
-            exit 1
-          else
-            echo "HF_TOKEN is set (length=${#HF_TOKEN})"
-          fi
+        run: pip install -q "huggingface_hub>=0.20.0"
 
       - name: Upload files to HF Space
         env:
@@ -36,32 +25,31 @@ jobs:
         run: |
           python3 << 'PYEOF'
           import os, sys
-          from huggingface_hub import HfApi, login
+          from huggingface_hub import HfApi
 
           token = os.environ.get("HF_TOKEN", "")
-          if not token:
-              print("ERROR: HF_TOKEN is empty")
-              sys.exit(1)
+          api = HfApi(token=token)
+          repo_id = "Purvish347/Stock.finder"
 
           try:
-              login(token=token)
-              api = HfApi()
-              repo_id = "Purvish347/Stock.finder"
+              # Verify token works
+              whoami = api.whoami()
+              print(f"Logged in as: {whoami['name']}")
+          except Exception as e:
+              print(f"AUTH ERROR: {e}")
+              sys.exit(1)
 
-              for fname in ["streamlit_app.py", "requirements.txt", "Dockerfile", "README.md"]:
-                  if os.path.exists(fname):
-                      api.upload_file(
-                          path_or_fileobj=fname,
-                          path_in_repo=fname,
-                          repo_id=repo_id,
-                          repo_type="space",
-                      )
-                      print(f"OK: uploaded {fname}")
-                  else:
-                      print(f"SKIP: {fname} not found")
-
+          files = ["streamlit_app.py", "requirements.txt", "Dockerfile", "README.md"]
+          try:
+              api.upload_folder(
+                  folder_path=".",
+                  repo_id=repo_id,
+                  repo_type="space",
+                  allow_patterns=files,
+                  commit_message="Deploy from GitHub Actions",
+              )
               print("Deploy complete!")
           except Exception as e:
-              print(f"DEPLOY ERROR: {e}")
+              print(f"UPLOAD ERROR: {e}")
               sys.exit(1)
           PYEOF
