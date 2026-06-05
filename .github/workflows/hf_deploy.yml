@@ -14,11 +14,35 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Push to Hugging Face Space
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Upload files to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git config --global user.email "purvishdh@users.noreply.github.com"
-          git config --global user.name "purvishdh"
-          git remote add hf https://Purvish347:$HF_TOKEN@huggingface.co/spaces/Purvish347/Stock.finder
-          git push hf main --force
+          python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          repo_id = "Purvish347/Stock.finder"
+
+          files = [
+              "streamlit_app.py",
+              "requirements.txt",
+              "Dockerfile",
+              "README.md",
+          ]
+
+          for f in files:
+              if os.path.exists(f):
+                  api.upload_file(
+                      path_or_fileobj=f,
+                      path_in_repo=f,
+                      repo_id=repo_id,
+                      repo_type="space",
+                  )
+                  print(f"Uploaded {f}")
+          print("All files uploaded successfully!")
+          EOF
